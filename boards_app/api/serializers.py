@@ -1,6 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
 from boards_app.models import Board
+from tasks_app.models import Task
 
 
 class UserCheckSerializer(serializers.ModelSerializer):
@@ -52,19 +53,60 @@ class BoardListSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         members_data = validated_data.pop("members", [])
-        
         board = Board.objects.create(**validated_data)
-        
         if members_data:
             board.members.set(members_data)
-            
         return board
+
+
+class TaskInBoardSerializer(serializers.ModelSerializer):
+    assignee = UserCheckSerializer(read_only=True)
+    reviewer = UserCheckSerializer(read_only=True)
+    comments_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Task
+        fields = [
+            "id",
+            "title",
+            "description",
+            "status",
+            "priority",
+            "assignee",
+            "reviewer",
+            "due_date",
+            "comments_count",
+        ]
+
+    def get_comments_count(self, obj):
+        return obj.comments.count() if hasattr(obj, "comments") else 0
 
 
 class BoardDetailSerializer(serializers.ModelSerializer):
     owner_id = serializers.IntegerField(source="owner.id", read_only=True)
     members = UserCheckSerializer(many=True, read_only=True)
+    tasks = TaskInBoardSerializer(many=True, read_only=True)
 
     class Meta:
         model = Board
-        fields = ["id", "title", "owner_id", "members", "created_at"]
+        fields = ["id", "title", "owner_id", "members", "tasks"]
+
+
+class BoardUpdateSerializer(serializers.ModelSerializer):
+    owner_data = UserCheckSerializer(source="owner", read_only=True)
+    members_data = UserCheckSerializer(source="members", many=True, read_only=True)
+    members = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=User.objects.all(), write_only=True, required=False
+    )
+
+    class Meta:
+        model = Board
+        fields = ["id", "title", "owner_data", "members_data", "members"]
+
+    def update(self, instance, validated_data):
+        if "title" in validated_data:
+            instance.title = validated_data["title"]
+        if "members" in validated_data:
+            instance.members.set(validated_data["members"])
+        instance.save()
+        return instance

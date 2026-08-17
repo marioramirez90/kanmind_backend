@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from django.db.models import Q
-from rest_framework import generics, status
-from rest_framework.permissions import IsAuthenticated
+from rest_framework import generics, status, permissions
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -9,12 +9,13 @@ from boards_app.models import Board
 from .serializers import (
     BoardDetailSerializer,
     BoardListSerializer,
+    BoardUpdateSerializer,
     UserCheckSerializer,
 )
 
 
 class EmailCheckView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
         email = request.query_params.get("email")
@@ -38,7 +39,7 @@ class EmailCheckView(APIView):
 
 class BoardListCreateView(generics.ListCreateAPIView):
     serializer_class = BoardListSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
@@ -52,15 +53,30 @@ class BoardListCreateView(generics.ListCreateAPIView):
 
 
 class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_url_kwarg = "board_id"
 
     def get_serializer_class(self):
-        if self.request.method == "GET":
-            return BoardDetailSerializer
-        return BoardListSerializer
+        if self.request.method in ["PATCH", "PUT"]:
+            return BoardUpdateSerializer
+        return BoardDetailSerializer
 
     def get_queryset(self):
         user = self.request.user
         return Board.objects.filter(
             Q(owner=user) | Q(members=user)
         ).distinct()
+
+    def get_object(self):
+        board = super().get_object()
+        user = self.request.user
+
+        if self.request.method == "DELETE" and board.owner != user:
+            raise PermissionDenied("Nur der Eigentümer kann das Board löschen.")
+
+        return board
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        self.perform_destroy(instance)
+        return Response(status=status.HTTP_204_NO_CONTENT)
