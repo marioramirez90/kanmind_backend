@@ -1,10 +1,16 @@
 from django.contrib.auth.models import User
-from rest_framework import status
+from django.db.models import Q
+from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from .serializers import UserCheckSerializer
+from boards_app.models import Board
+from .serializers import (
+    BoardDetailSerializer,
+    BoardListSerializer,
+    UserCheckSerializer,
+)
 
 
 class EmailCheckView(APIView):
@@ -28,3 +34,33 @@ class EmailCheckView(APIView):
                 {"error": "Email not found."},
                 status=status.HTTP_404_NOT_FOUND,
             )
+
+
+class BoardListCreateView(generics.ListCreateAPIView):
+    serializer_class = BoardListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Board.objects.filter(
+            Q(owner=user) | Q(members=user)
+        ).distinct()
+
+    def perform_create(self, serializer):
+        board = serializer.save(owner=self.request.user)
+        board.members.add(self.request.user)
+
+
+class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_serializer_class(self):
+        if self.request.method == "GET":
+            return BoardDetailSerializer
+        return BoardListSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        return Board.objects.filter(
+            Q(owner=user) | Q(members=user)
+        ).distinct()
