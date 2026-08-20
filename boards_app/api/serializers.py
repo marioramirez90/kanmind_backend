@@ -5,6 +5,7 @@ from tasks_app.models import Task
 
 
 class UserCheckSerializer(serializers.ModelSerializer):
+    """Serializes user basic info: id, email, and full name."""
     fullname = serializers.CharField(source="first_name")
 
     class Meta:
@@ -13,6 +14,7 @@ class UserCheckSerializer(serializers.ModelSerializer):
 
 
 class BoardListSerializer(serializers.ModelSerializer):
+    """Serializes board summary with member counts and task statistics."""
     member_count = serializers.SerializerMethodField()
     ticket_count = serializers.SerializerMethodField()
     tasks_to_do_count = serializers.SerializerMethodField()
@@ -60,6 +62,7 @@ class BoardListSerializer(serializers.ModelSerializer):
 
 
 class TaskInBoardSerializer(serializers.ModelSerializer):
+    """Serializes task details for display within a board."""
     assignee = UserCheckSerializer(read_only=True)
     reviewer = UserCheckSerializer(read_only=True)
     comments_count = serializers.SerializerMethodField()
@@ -83,6 +86,7 @@ class TaskInBoardSerializer(serializers.ModelSerializer):
 
 
 class BoardDetailSerializer(serializers.ModelSerializer):
+    """Serializes complete board info including members and all tasks."""
     owner_id = serializers.IntegerField(source="owner.id", read_only=True)
     members = UserCheckSerializer(many=True, read_only=True)
     tasks = TaskInBoardSerializer(many=True, read_only=True)
@@ -93,6 +97,7 @@ class BoardDetailSerializer(serializers.ModelSerializer):
 
 
 class BoardUpdateSerializer(serializers.ModelSerializer):
+    """Updates board title and manages board member list."""
     owner_data = UserCheckSerializer(source="owner", read_only=True)
     members_data = UserCheckSerializer(source="members", many=True, read_only=True)
     members = serializers.PrimaryKeyRelatedField(

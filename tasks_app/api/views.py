@@ -8,6 +8,7 @@ from .serializers import CommentSerializer, TaskSerializer
 
 
 class AssignedToMeTaskListView(generics.ListAPIView):
+    """Lists all tasks assigned to the current user."""
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -16,6 +17,7 @@ class AssignedToMeTaskListView(generics.ListAPIView):
 
 
 class ReviewingTaskListView(generics.ListAPIView):
+    """Lists all tasks where the current user is assigned as reviewer."""
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -24,6 +26,7 @@ class ReviewingTaskListView(generics.ListAPIView):
 
 
 class TaskCreateView(generics.CreateAPIView):
+    """Creates a new task on a board if user is a board member."""
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -32,6 +35,7 @@ class TaskCreateView(generics.CreateAPIView):
 
 
 class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Retrieves, updates, and deletes tasks (only board owner can delete)."""
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     lookup_url_kwarg = "task_id"
@@ -51,6 +55,7 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
 
 
 class CommentListCreateView(generics.ListCreateAPIView):
+    """Lists comments on a task and creates new comments for board members."""
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -67,6 +72,7 @@ class CommentListCreateView(generics.ListCreateAPIView):
 
 
 class CommentDestroyView(generics.DestroyAPIView):
+    """Deletes a comment (only the author can delete their own comments)."""
     serializer_class = CommentSerializer
     permission_classes = [permissions.IsAuthenticated, IsCommentAuthor]
 

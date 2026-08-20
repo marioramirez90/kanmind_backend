@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 
 
 class Board(models.Model):
+    """Represents a project board with an owner and multiple members."""
     title = models.CharField(max_length=255)
     owner = models.ForeignKey(
         User, on_delete=models.CASCADE, related_name="owned_boards"

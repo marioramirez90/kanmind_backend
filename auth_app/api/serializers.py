@@ -5,6 +5,7 @@ from rest_framework.authtoken.models import Token
 
 
 class RegistrationSerializer(serializers.ModelSerializer):
+    """Validates and creates new user accounts with password confirmation."""
     fullname = serializers.CharField(write_only=True)
     repeated_password = serializers.CharField(write_only=True)
 
@@ -40,6 +41,7 @@ class RegistrationSerializer(serializers.ModelSerializer):
 
 
 class LoginSerializer(serializers.Serializer):
+    """Validates email and password credentials for user login."""
     email = serializers.EmailField()
     password = serializers.CharField(write_only=True)
 

@@ -15,6 +15,7 @@ from .serializers import (
 
 
 class EmailCheckView(APIView):
+    """Checks if an email exists in the system and returns user info."""
     permission_classes = [permissions.IsAuthenticated]
 
     def get(self, request):
@@ -38,6 +39,7 @@ class EmailCheckView(APIView):
 
 
 class BoardListCreateView(generics.ListCreateAPIView):
+    """Lists boards where user is owner or member, and creates new boards."""
     serializer_class = BoardListSerializer
     permission_classes = [permissions.IsAuthenticated]
 
@@ -53,6 +55,7 @@ class BoardListCreateView(generics.ListCreateAPIView):
 
 
 class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Retrieves, updates, and deletes board details (only owner can delete)."""
     permission_classes = [permissions.IsAuthenticated]
     lookup_url_kwarg = "board_id"
 

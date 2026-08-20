@@ -2,6 +2,7 @@ from rest_framework import permissions
 
 
 class IsTaskBoardMember(permissions.BasePermission):
+    """Checks if the user is a member or owner of the task's board."""
     def has_object_permission(self, request, view, obj):
         board = obj.board
         is_member = board.members.filter(id=request.user.id).exists()

@@ -4,6 +4,7 @@ from tasks_app.models import Task, Comment
 
 
 class UserSimpleSerializer(serializers.ModelSerializer):
+    """Serializes user info with id, email, and full name."""
     fullname = serializers.SerializerMethodField()
 
     class Meta:
@@ -16,6 +17,7 @@ class UserSimpleSerializer(serializers.ModelSerializer):
 
 
 class TaskSerializer(serializers.ModelSerializer):
+    """Serializes task data with assignee, reviewer, and validation for board members."""
     assignee = UserSimpleSerializer(read_only=True)
     reviewer = UserSimpleSerializer(read_only=True)
 
@@ -79,6 +81,7 @@ class TaskSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    """Serializes comment data with author name and creation timestamp."""
     author = serializers.SerializerMethodField()
     content = serializers.CharField(source="text")
 
