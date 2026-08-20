@@ -16,7 +16,6 @@ class UserSimpleSerializer(serializers.ModelSerializer):
 
 
 class TaskSerializer(serializers.ModelSerializer):
-
     assignee = UserSimpleSerializer(read_only=True)
     reviewer = UserSimpleSerializer(read_only=True)
 
@@ -56,3 +55,37 @@ class TaskSerializer(serializers.ModelSerializer):
 
     def get_comments_count(self, obj):
         return obj.comments.count() if hasattr(obj, "comments") else 0
+
+    def validate(self, attrs):
+        board = attrs.get("board", getattr(self.instance, "board", None))
+
+        if board:
+            board_users = set(board.members.values_list("id", flat=True))
+            board_users.add(board.owner.id)
+
+            assignee = attrs.get("assignee", getattr(self.instance, "assignee", None))
+            if assignee and assignee.id not in board_users:
+                raise serializers.ValidationError(
+                    {"assignee_id": "Der Bearbeiter muss Mitglied des Boards sein."}
+                )
+
+            reviewer = attrs.get("reviewer", getattr(self.instance, "reviewer", None))
+            if reviewer and reviewer.id not in board_users:
+                raise serializers.ValidationError(
+                    {"reviewer_id": "Der Reviewer muss Mitglied des Boards sein."}
+                )
+
+        return attrs
+
+
+class CommentSerializer(serializers.ModelSerializer):
+    author = serializers.SerializerMethodField()
+    content = serializers.CharField(source="text")
+
+    class Meta:
+        model = Comment
+        fields = ["id", "created_at", "author", "content"]
+
+    def get_author(self, obj):
+        full_name = f"{obj.author.first_name} {obj.author.last_name}".strip()
+        return full_name if full_name else obj.author.username
