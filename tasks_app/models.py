@@ -29,6 +29,9 @@ class Task(models.Model):
     reviewer = models.ForeignKey(
         User, on_delete=models.SET_NULL, null=True, blank=True, related_name="reviewed_tasks"
     )
+    author = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True, related_name="created_tasks"
+    )
     due_date = models.DateField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

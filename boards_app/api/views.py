@@ -58,21 +58,24 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
     """Retrieves, updates, and deletes board details (only owner can delete)."""
     permission_classes = [permissions.IsAuthenticated]
     lookup_url_kwarg = "board_id"
+    queryset = Board.objects.all()
 
     def get_serializer_class(self):
         if self.request.method in ["PATCH", "PUT"]:
             return BoardUpdateSerializer
         return BoardDetailSerializer
 
-    def get_queryset(self):
-        user = self.request.user
-        return Board.objects.filter(
-            Q(owner=user) | Q(members=user)
-        ).distinct()
-
     def get_object(self):
         board = super().get_object()
         user = self.request.user
+
+        is_member = board.members.filter(id=user.id).exists()
+        is_owner = board.owner == user
+
+        if not (is_member or is_owner):
+            raise PermissionDenied(
+                "Verboten. Der Benutzer muss entweder Mitglied oder Eigentümer des Boards sein."
+            )
 
         if self.request.method == "DELETE" and board.owner != user:
             raise PermissionDenied("Nur der Eigentümer kann das Board löschen.")

@@ -1,9 +1,10 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from ..models import Comment, Task
-from .permissions import IsCommentAuthor, IsTaskBoardMember, IsTaskBoardOwner
+from .permissions import IsCommentAuthor, IsTaskBoardMember, IsTaskCreatorOrBoardOwner
 from .serializers import CommentSerializer, TaskSerializer
 
 
@@ -26,23 +27,39 @@ class ReviewingTaskListView(generics.ListAPIView):
 
 
 class TaskCreateView(generics.CreateAPIView):
-    """Creates a new task on a board if user is a board member."""
+    """Creates a new task on a board if user is a board member or owner."""
     serializer_class = TaskSerializer
     permission_classes = [permissions.IsAuthenticated]
 
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        board = serializer.validated_data["board"]
+        user = request.user
+        is_member = board.members.filter(id=user.id).exists()
+        is_owner = board.owner == user
+        if not (is_member or is_owner):
+            return Response(
+                {"detail": "Verboten. Der Benutzer muss Mitglied des Boards sein, um eine Task zu erstellen."},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
     def perform_create(self, serializer):
-        serializer.save()
+        serializer.save(author=self.request.user)
 
 
 class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
-    """Retrieves, updates, and deletes tasks (only board owner can delete)."""
+    """Retrieves, updates, and deletes tasks (only creator or board owner can delete)."""
     queryset = Task.objects.all()
     serializer_class = TaskSerializer
     lookup_url_kwarg = "task_id"
 
     def get_permissions(self):
         if self.request.method == "DELETE":
-            return [permissions.IsAuthenticated(), IsTaskBoardOwner()]
+            return [permissions.IsAuthenticated(), IsTaskCreatorOrBoardOwner()]
         return [permissions.IsAuthenticated(), IsTaskBoardMember()]
 
     def update(self, request, *args, **kwargs):
@@ -60,7 +77,14 @@ class CommentListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_task(self):
-        return get_object_or_404(Task, id=self.kwargs["task_id"])
+        task = get_object_or_404(Task, id=self.kwargs["task_id"])
+        user = self.request.user
+        board = task.board
+        is_member = board.members.filter(id=user.id).exists()
+        is_owner = board.owner == user
+        if not (is_member or is_owner):
+            raise PermissionDenied("Verboten. Der Benutzer muss Mitglied des Boards sein, zu dem die Task gehört.")
+        return task
 
     def get_queryset(self):
         task = self.get_task()
@@ -77,8 +101,10 @@ class CommentDestroyView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated, IsCommentAuthor]
 
     def get_object(self):
-        return get_object_or_404(
+        obj = get_object_or_404(
             Comment,
             id=self.kwargs["comment_id"],
             task_id=self.kwargs["task_id"],
         )
+        self.check_object_permissions(self.request, obj)
+        return obj
