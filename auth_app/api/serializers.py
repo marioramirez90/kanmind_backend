@@ -16,6 +16,11 @@ class RegistrationSerializer(serializers.ModelSerializer):
             "password": {"write_only": True}
         }
 
+    def validate_email(self, value):
+        if User.objects.filter(email=value).exists() or User.objects.filter(username=value).exists():
+            raise serializers.ValidationError("A user with this email address already exists.")
+        return value
+
     def save(self):
         pw = self.validated_data["password"]
         repeated_pw = self.validated_data["repeated_password"]
