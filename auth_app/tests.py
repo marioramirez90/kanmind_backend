@@ -9,7 +9,7 @@ class AuthAppTests(TestCase):
         self.client = APIClient()
 
     def test_registration_success(self):
-        response = self.client.post("/api/auth/register/", {
+        response = self.client.post("/api/registration/", {
             "fullname": "Test User",
             "email": "test@example.com",
             "password": "password123",
@@ -21,7 +21,7 @@ class AuthAppTests(TestCase):
 
     def test_registration_duplicate_email(self):
         User.objects.create_user(username="test@example.com", email="test@example.com", password="password123")
-        response = self.client.post("/api/auth/register/", {
+        response = self.client.post("/api/registration/", {
             "fullname": "Test User",
             "email": "test@example.com",
             "password": "password123",
@@ -32,7 +32,7 @@ class AuthAppTests(TestCase):
 
     def test_login_success(self):
         User.objects.create_user(username="login@example.com", email="login@example.com", password="password123")
-        response = self.client.post("/api/auth/login/", {
+        response = self.client.post("/api/login/", {
             "email": "login@example.com",
             "password": "password123"
         })
