@@ -1,8 +1,9 @@
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 
+from boards_app.models import Board
 from ..models import Comment, Task
 from .permissions import IsCommentAuthor, IsTaskBoardMember, IsTaskCreatorOrBoardOwner
 from .serializers import CommentSerializer, TaskSerializer
@@ -32,6 +33,15 @@ class TaskCreateView(generics.CreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def create(self, request, *args, **kwargs):
+        board_id = request.data.get("board")
+        if board_id is not None:
+            try:
+                board_id_int = int(board_id)
+                if not Board.objects.filter(id=board_id_int).exists():
+                    raise NotFound(detail="Board not found. The specified board ID does not exist.")
+            except (ValueError, TypeError):
+                pass
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         board = serializer.validated_data["board"]
@@ -40,7 +50,7 @@ class TaskCreateView(generics.CreateAPIView):
         is_owner = board.owner == user
         if not (is_member or is_owner):
             return Response(
-                {"detail": "Verboten. Der Benutzer muss Mitglied des Boards sein, um eine Task zu erstellen."},
+                {"detail": "Forbidden. User must be a member of the board to create a task."},
                 status=status.HTTP_403_FORBIDDEN,
             )
         self.perform_create(serializer)
@@ -65,7 +75,7 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
     def update(self, request, *args, **kwargs):
         if "board" in request.data:
             return Response(
-                {"detail": "Das Ändern des Boards ist nicht erlaubt."},
+                {"detail": "Changing the board is not allowed."},
                 status=status.HTTP_400_BAD_REQUEST,
             )
         return super().update(request, *args, **kwargs)
@@ -83,7 +93,7 @@ class CommentListCreateView(generics.ListCreateAPIView):
         is_member = board.members.filter(id=user.id).exists()
         is_owner = board.owner == user
         if not (is_member or is_owner):
-            raise PermissionDenied("Verboten. Der Benutzer muss Mitglied des Boards sein, zu dem die Task gehört.")
+            raise PermissionDenied("Forbidden. User must be a member of the board to which the task belongs.")
         return task
 
     def get_queryset(self):

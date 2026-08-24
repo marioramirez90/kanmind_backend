@@ -69,13 +69,13 @@ class TaskSerializer(serializers.ModelSerializer):
             assignee = attrs.get("assignee", getattr(self.instance, "assignee", None))
             if assignee and assignee.id not in board_users:
                 raise serializers.ValidationError(
-                    {"assignee_id": "Der Bearbeiter muss Mitglied des Boards sein."}
+                    {"assignee_id": "The assignee must be a member of the board."}
                 )
 
             reviewer = attrs.get("reviewer", getattr(self.instance, "reviewer", None))
             if reviewer and reviewer.id not in board_users:
                 raise serializers.ValidationError(
-                    {"reviewer_id": "Der Reviewer muss Mitglied des Boards sein."}
+                    {"reviewer_id": "The reviewer must be a member of the board."}
                 )
 
         return attrs

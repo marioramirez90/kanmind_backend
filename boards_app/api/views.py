@@ -74,11 +74,11 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
 
         if not (is_member or is_owner):
             raise PermissionDenied(
-                "Verboten. Der Benutzer muss entweder Mitglied oder Eigentümer des Boards sein."
+                "Forbidden. User must be a member or owner of the board."
             )
 
         if self.request.method == "DELETE" and board.owner != user:
-            raise PermissionDenied("Nur der Eigentümer kann das Board löschen.")
+            raise PermissionDenied("Only the owner can delete the board.")
 
         return board
 
