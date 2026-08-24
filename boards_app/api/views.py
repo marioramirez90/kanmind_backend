@@ -1,7 +1,8 @@
 from django.contrib.auth.models import User
 from django.db.models import Q
+from django.http import Http404
 from rest_framework import generics, status, permissions
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -66,9 +67,12 @@ class BoardDetailView(generics.RetrieveUpdateDestroyAPIView):
         return BoardDetailSerializer
 
     def get_object(self):
-        board = super().get_object()
-        user = self.request.user
+        try:
+            board = super().get_object()
+        except Http404:
+            raise NotFound(detail="Board not found. The specified board ID does not exist.")
 
+        user = self.request.user
         is_member = board.members.filter(id=user.id).exists()
         is_owner = board.owner == user
 

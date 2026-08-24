@@ -1,3 +1,4 @@
+from django.http import Http404
 from django.shortcuts import get_object_or_404
 from rest_framework import generics, permissions, status
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -72,6 +73,12 @@ class TaskDetailView(generics.RetrieveUpdateDestroyAPIView):
             return [permissions.IsAuthenticated(), IsTaskCreatorOrBoardOwner()]
         return [permissions.IsAuthenticated(), IsTaskBoardMember()]
 
+    def get_object(self):
+        try:
+            return super().get_object()
+        except Http404:
+            raise NotFound(detail="Task not found. The specified task ID does not exist.")
+
     def update(self, request, *args, **kwargs):
         if "board" in request.data:
             return Response(
@@ -87,7 +94,10 @@ class CommentListCreateView(generics.ListCreateAPIView):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_task(self):
-        task = get_object_or_404(Task, id=self.kwargs["task_id"])
+        try:
+            task = Task.objects.get(id=self.kwargs["task_id"])
+        except Task.DoesNotExist:
+            raise NotFound(detail="Task not found. The specified task ID does not exist.")
         user = self.request.user
         board = task.board
         is_member = board.members.filter(id=user.id).exists()
@@ -111,10 +121,12 @@ class CommentDestroyView(generics.DestroyAPIView):
     permission_classes = [permissions.IsAuthenticated, IsCommentAuthor]
 
     def get_object(self):
-        obj = get_object_or_404(
-            Comment,
-            id=self.kwargs["comment_id"],
-            task_id=self.kwargs["task_id"],
-        )
+        try:
+            obj = Comment.objects.get(
+                id=self.kwargs["comment_id"],
+                task_id=self.kwargs["task_id"],
+            )
+        except Comment.DoesNotExist:
+            raise NotFound(detail="Comment or Task not found. The specified ID does not exist.")
         self.check_object_permissions(self.request, obj)
         return obj
