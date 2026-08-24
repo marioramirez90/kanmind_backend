@@ -1,6 +1,8 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
+from rest_framework.exceptions import NotFound
 
+from boards_app.models import Board
 from tasks_app.models import Comment, Task
 
 
@@ -17,8 +19,23 @@ class UserSimpleSerializer(serializers.ModelSerializer):
         return full_name if full_name else obj.username
 
 
+class BoardPrimaryKeyRelatedField(serializers.PrimaryKeyRelatedField):
+    """Custom PrimaryKeyRelatedField that raises 404 NotFound when board ID does not exist."""
+    def to_internal_value(self, data):
+        try:
+            return super().to_internal_value(data)
+        except serializers.ValidationError:
+            try:
+                if not Board.objects.filter(pk=data).exists():
+                    raise NotFound(detail="Board not found. The specified board ID does not exist.")
+            except (ValueError, TypeError):
+                pass
+            raise
+
+
 class TaskSerializer(serializers.ModelSerializer):
     """Serializes task data with assignee, reviewer, and validation for board members."""
+    board = BoardPrimaryKeyRelatedField(queryset=Board.objects.all())
     assignee = UserSimpleSerializer(read_only=True)
     reviewer = UserSimpleSerializer(read_only=True)
 
