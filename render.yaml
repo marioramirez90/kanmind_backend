@@ -3,7 +3,7 @@ services:
     name: kanmind-backend
     runtime: python
     buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate
-    startCommand: gunicorn core.wsgi:application
+    startCommand: python manage.py migrate && gunicorn core.wsgi:application
     healthCheckPath: /health/
     envVars:
       - key: SECRET_KEY
