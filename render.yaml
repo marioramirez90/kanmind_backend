@@ -11,7 +11,7 @@ services:
       - key: DEBUG
         value: "False"
       - key: ALLOWED_HOSTS
-        value: "kanmind-backend.onrender.com,api.marioramirez.de"
+        value: "kanmind-backend-jdkc.onrender.com,api.marioramirez.de"
       - key: CORS_ALLOWED_ORIGINS
         value: "https://marioramirez.de,https://www.marioramirez.de"
       - key: CSRF_TRUSTED_ORIGINS
