@@ -36,7 +36,10 @@ DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
 ALLOWED_HOSTS = [
     host.strip()
-    for host in os.getenv("ALLOWED_HOSTS", "api.marioramirez.de").split(",")
+    for host in os.getenv(
+        "ALLOWED_HOSTS",
+        "kanmind-backend-jdkc.onrender.com,api.marioramirez.de",
+    ).split(",")
     if host.strip()
 ]
 
